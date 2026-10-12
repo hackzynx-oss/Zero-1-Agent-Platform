@@ -1,25 +1,35 @@
 {
-  "name": "zero-1-agent-platform",
+  "name": "zero-1-platform",
   "version": "1.0.0",
-  "description": "Advanced AI Agent Chat Platform",
-  "main": "server.js",
+  "description": "Zero 1: Advanced AI Agent Platform - Black Hat Logic Mode",
+  "main": "server/index.js",
   "type": "module",
   "scripts": {
-    "dev": "concurrently \"npm run server\" \"npm run client\"",
-    "server": "node server.js",
-    "client": "cd client && npm run dev",
+    "dev": "concurrently \"npm run server:dev\" \"npm run client:dev\"",
+    "server:dev": "node --watch server/index.js",
+    "server": "node server/index.js",
+    "client:dev": "cd client && npm run dev",
+    "client:build": "cd client && npm run build",
     "build": "cd client && npm run build",
-    "start": "node server.js"
+    "start": "node server/index.js",
+    "test:api": "node tests/api.test.js",
+    "test:db": "node tests/db.test.js"
   },
   "dependencies": {
     "express": "^4.18.2",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "axios": "^1.6.0",
-    "sqlite3": "^5.1.6",
-    "uuid": "^9.0.0"
+    "better-sqlite3": "^9.0.0",
+    "uuid": "^9.0.0",
+    "multer": "^1.4.5-lts.1",
+    "compression": "^1.7.4"
   },
   "devDependencies": {
     "concurrently": "^8.2.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
   }
 }
