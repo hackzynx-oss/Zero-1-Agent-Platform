@@ -44,18 +44,35 @@ const ChatPage: React.FC = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [apiReady, setApiReady] = useState(false);
 
-  const API_URL = 'http://localhost:5000/api';
+  const API_URL = '/api'; // Use relative path for proxy
+
+  // Check API health on mount
+  useEffect(() => {
+    const checkApi = async () => {
+      try {
+        await axios.get(`${API_URL}/health`);
+        setApiReady(true);
+      } catch (error) {
+        console.error('API not ready:', error);
+        setApiReady(false);
+      }
+    };
+    checkApi();
+  }, []);
 
   // Initialize
   useEffect(() => {
+    if (!apiReady) return;
+    
     loadConversations();
     if (id) {
       loadConversation(id);
     } else {
       createNewConversation();
     }
-  }, [id]);
+  }, [id, apiReady]);
 
   useEffect(() => {
     scrollToBottom();
@@ -88,7 +105,7 @@ const ChatPage: React.FC = () => {
 
   const createNewConversation = async () => {
     try {
-      const title = `Conversation ${new Date().toLocaleTimeString()}`;
+      const title = `Chat ${new Date().toLocaleTimeString()}`;
       const response = await axios.post(`${API_URL}/conversations/new`, { title });
       const newConv = response.data;
       setCurrentConversation(newConv);
@@ -112,13 +129,14 @@ const ChatPage: React.FC = () => {
     };
 
     setMessages(prev => [...prev, userMessage]);
+    const messageContent = inputValue;
     setInputValue('');
     setIsLoading(true);
 
     try {
       const response = await axios.post(`${API_URL}/agent/chat`, {
         conversationId: currentConversation.id,
-        message: inputValue,
+        message: messageContent,
         thinkingMode,
         focusLevel,
       });
@@ -133,17 +151,12 @@ const ChatPage: React.FC = () => {
 
       setMessages(prev => [...prev, assistantMessage]);
       loadConversations();
-
-      // Handle special 4040 command
-      if (inputValue.trim() === '4040') {
-        setShowThinking(true);
-      }
     } catch (error) {
       console.error('Error sending message:', error);
       const errorMessage: Message = {
         id: Date.now().toString(),
         role: 'assistant',
-        content: '🖤 Zero 1 encountered a processing error. Attempting recovery...',
+        content: '🎯 Zero 1 encountered a processing error. Attempting recovery...',
         timestamp: new Date(),
       };
       setMessages(prev => [...prev, errorMessage]);
@@ -153,7 +166,7 @@ const ChatPage: React.FC = () => {
   };
 
   const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
+    navigator.clipboard.writeText(text).catch(err => console.error('Copy error:', err));
   };
 
   const downloadConversation = () => {
@@ -178,6 +191,18 @@ const ChatPage: React.FC = () => {
       reader.readAsText(e.target.files[0]);
     }
   };
+
+  if (!apiReady) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-black text-green-400">
+        <div className="text-center">
+          <BsRobot className="text-6xl mx-auto mb-4 animate-pulse" />
+          <h1 className="text-2xl font-bold mb-2">Zero 1 Initializing</h1>
+          <p className="text-gray-500">Connecting to server... Make sure backend is running on port 5000</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`flex h-screen ${darkMode ? 'bg-black text-gray-100' : 'bg-white text-gray-900'}`}>
@@ -213,7 +238,7 @@ const ChatPage: React.FC = () => {
             onClick={() => navigate('/history')}
             className="w-full text-left px-3 py-2 rounded text-sm hover:bg-green-500/10 hover:text-green-400 transition-all"
           >
-            📜 History
+            📋 History
           </button>
           <button
             onClick={() => navigate('/settings')}
@@ -296,7 +321,7 @@ const ChatPage: React.FC = () => {
                 <div className="prose prose-invert max-w-none break-words">
                   <ReactMarkdown
                     components={{
-                      code: ({ node, inline, className, children, ...props }) => {
+                      code: ({ node, inline, className, children, ...props }: any) => {
                         if (!inline) {
                           return (
                             <pre className="bg-black/50 rounded p-3 my-2 overflow-x-auto border border-green-500/30">
@@ -369,8 +394,8 @@ const ChatPage: React.FC = () => {
         <div className={`${darkMode ? 'bg-gray-900 border-t border-green-500/20' : 'bg-gray-100 border-t border-green-500/20'} p-6`}>
           <div className="max-w-4xl mx-auto space-y-3">
             {/* Controls */}
-            <div className="flex items-center justify-between text-xs text-gray-500">
-              <div className="flex items-center gap-4">
+            <div className="flex items-center justify-between text-xs text-gray-500 flex-wrap gap-2">
+              <div className="flex items-center gap-4 flex-wrap">
                 <label className="flex items-center gap-2 hover:text-green-400 cursor-pointer">
                   <input
                     type="checkbox"
